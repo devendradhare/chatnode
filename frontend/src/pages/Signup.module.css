@@ -1,0 +1,56 @@
+.SignInPage {
+    /* font-family: 'Playpen Sans', cursive; */
+
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.SignInBox {
+    display: flex;
+    /* border: 1px solid rgba(0, 0, 0, 0.303); */
+    width: 350px;
+    /* height: 450px; */
+    align-items: center;
+    flex-direction: column;
+}
+
+.SignInBox h1 {
+    margin-bottom: 25px;
+}
+
+.errorMsg {
+    color: red;
+}
+
+#SignInBtn {
+    background: #131a31;
+    color: white;
+    border-radius: 5px;
+    padding: 0 10px;
+    margin: 10px 10px;
+    height: 43px;
+    outline: none;
+    border: none;
+    align-self: stretch;
+
+}
+
+.SignInBox>.input {
+    background: #00000028;
+    color: white;
+    border-radius: 5px;
+    padding: 0 10px;
+    margin: 10px 10px;
+    height: 43px;
+    outline: none;
+    border: none;
+    align-self: stretch;
+}
+
+.SignInBox>p>a {
+    margin-left: 10px;
+    color: blueviolet;
+}
