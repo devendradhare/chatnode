@@ -1,5 +1,6 @@
 import User from "./../models/user.model.js";
 export const getContacts = async (req, res) => {
+  console.log("getContacts req");
   try {
     const loggedInUserId = req.user._id;
     const allUsers = await User.find({ _id: { $ne: loggedInUserId } }).select(
