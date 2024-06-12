@@ -5,14 +5,17 @@ import "./index.css";
 import { BrowserRouter } from "react-router-dom";
 import { AuthContextProvider } from "./context/authContext";
 import { ContactContextProvider } from "./context/contactContext";
+import { SocketContextProvider } from "./context/socketContext";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthContextProvider>
-        <ContactContextProvider>
-          <App />
-        </ContactContextProvider>
+        <SocketContextProvider>
+          <ContactContextProvider>
+            <App />
+          </ContactContextProvider>
+        </SocketContextProvider>
       </AuthContextProvider>
     </BrowserRouter>
   </React.StrictMode>

@@ -14,7 +14,6 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(input);
     login(input);
   };
 
@@ -47,7 +46,11 @@ const Login = () => {
           variant="outlined"
           color="inherit"
         >
-          LOGIN
+          {loading ? (
+            <span className="loading loading-dots loading-md"></span>
+          ) : (
+            "LOGIN"
+          )}
         </Button>
         <p>
           alredy have an account ?

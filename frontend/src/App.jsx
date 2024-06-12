@@ -32,6 +32,7 @@ function App() {
           style: {
             backgroundColor: "rgba(255,255,255, .9)",
             // color: "#713200",
+            zIndex: "99",
           },
         }}
       />

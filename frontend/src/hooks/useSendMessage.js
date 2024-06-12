@@ -5,7 +5,12 @@ import { toast } from "react-hot-toast";
 
 const useSendMessage = () => {
   const [loading, setLoading] = useState(false);
-  const { selectedContact, messages, setMessages  } = useContactContext();
+  const {
+    contacts,
+    setContacts,
+    selectedContact,
+    setSelectedContact,
+  } = useContactContext();
 
   const sendMessage = async (message) => {
     setLoading(true);
@@ -20,9 +25,20 @@ const useSendMessage = () => {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
-      console.log("sendMessage hook function ", data);
-      setMessages([...messages, data])
+      const updatedContact = contacts.map((c) => {
+        if (c._id === selectedContact._id) {
+          const addedNewMsg = {
+            ...c,
+            messages: [...c.messages, data],
+          };
+          setSelectedContact(addedNewMsg);
+          return addedNewMsg;
+        }
+        return c;
+      });
+      setContacts(updatedContact);
     } catch (error) {
+      console.log(error);
       toast.error(error.message);
     } finally {
       setLoading(false);

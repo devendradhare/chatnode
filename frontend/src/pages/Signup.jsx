@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import style from "./Signup.module.css";
 import Button from "@mui/material/Button";
 import useSignup from "./../hooks/useSignup";
@@ -12,13 +13,11 @@ const Signup = () => {
     confirmPassword: "",
     gender: "",
   });
-  const navigate = useNavigate();
 
   const { loading, signup } = useSignup();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(input);
     await signup(input);
   };
 
@@ -60,7 +59,7 @@ const Signup = () => {
           onChange={(e) => handleInputChange(e)}
         />
 
-        <div className="flex  w-[90%] items-center justify-between" >
+        <div className="flex  w-[90%] items-center justify-between">
           <span>GENDER</span>
           <label className="label cursor-pointer gap-4">
             <span className="label-text">Male</span>
@@ -92,7 +91,11 @@ const Signup = () => {
           variant="outlined"
           color="inherit"
         >
-          SIGN UP
+          {loading ? (
+            <span className="loading loading-dots loading-md"></span>
+          ) : (
+            "SIGN UP"
+          )}
         </Button>
         <p>
           alredy have an account ?

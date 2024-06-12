@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-unused-vars
 import React from "react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
@@ -38,7 +39,6 @@ const useSignup = () => {
       });
 
       const data = await res.json();
-      console.log(data);
       if (data.error) throw new Error(data.error);
 
       localStorage.setItem("chatnodeUser", JSON.stringify(data));

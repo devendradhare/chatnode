@@ -2,20 +2,24 @@ import { useState, useEffect, useRef } from "react";
 import Style from "./Structure.module.css";
 
 import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
-import CloseIcon from "@mui/icons-material/Close";
 import { styled } from "@mui/material/styles";
 import Badge from "@mui/material/Badge";
 import { default as MuiAvatar } from "@mui/material/Avatar";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import SendIcon from "@mui/icons-material/Send";
+import LogoutIcon from "@mui/icons-material/Logout";
 
 import { useContacts } from "../hooks/useContact.js";
 import { useContactContext } from "../context/contactContext.jsx";
 import { useAuthContext } from "../context/authContext.jsx";
 import useLogout from "../hooks/useLogout.js";
 import useSendMessage from "../hooks/useSendMessage.js";
-import useGetMessages from "./../hooks/useGetMessages";
+import useUpdateProfile from "./../hooks/useUpdateProfile";
+import { useSocketContext } from "./../context/socketContext.jsx";
+import { Toaster } from "react-hot-toast";
+
+// icons
+import chatnodeIcon from "../assets/icons/chatnode.png";
 
 const StyledBadge = styled(Badge)(({ theme }) => ({
   "& .MuiBadge-badge": {
@@ -46,6 +50,7 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
   },
 }));
 
+// eslint-disable-next-line react/prop-types
 const Avatar = ({ profilePic, isOnline }) => {
   return (
     <StyledBadge
@@ -61,7 +66,6 @@ const Avatar = ({ profilePic, isOnline }) => {
 const Profile = () => {
   const { authUser } = useAuthContext();
   function handleProfileClick() {
-    console.log("profileClick");
     document.getElementById("my_modal_3").showModal();
   }
   return (
@@ -78,7 +82,7 @@ const Profile = () => {
     </div>
   );
 };
-
+// eslint-disable-next-line react/prop-types
 const SearchBox = ({ searchQuery, setSearchQuery }) => {
   return (
     <label className="input input-bordered flex items-center gap-2 bg-[#5a5c66] border-none m-4 rounded h-16">
@@ -105,10 +109,12 @@ const SearchBox = ({ searchQuery, setSearchQuery }) => {
   );
 };
 
-const Contacts = ({ searchQuery }) => {
+// eslint-disable-next-line react/prop-types
+const Contacts = ({ searchQuery, setToggleSidebar }) => {
   const { contacts } = useContactContext();
   const { loading, getContacts } = useContacts();
   const [filteredUsers, setFilteredUsers] = useState(contacts || []);
+  const { onlineUsers } = useSocketContext();
 
   useEffect(() => {
     getContacts();
@@ -124,15 +130,29 @@ const Contacts = ({ searchQuery }) => {
 
   return (
     <div className="h-fit grid grid-cols-1 divide-y divide-slate-500 overflow-scroll">
-      {contacts && contacts.length
-        ? filteredUsers.map((c) => <Contact key={c._id} contact={c} />)
-        : "no contact found"}
+      {loading ? (
+        <div className="flex justify-center">
+          <span className="loading loading-dots loading-lg self-center"></span>
+        </div>
+      ) : contacts && contacts.length ? (
+        filteredUsers.map((c) => (
+          <Contact
+            key={c._id}
+            contact={c}
+            isOnline={onlineUsers.includes(c._id)}
+            setToggleSidebar={setToggleSidebar}
+          />
+        ))
+      ) : (
+        "no contact found"
+      )}
     </div>
   );
 };
 
-const Contact = ({ contact }) => {
-  const { setSelectedContact, selectedContact } = useContactContext();
+// eslint-disable-next-line react/prop-types
+const Contact = ({ contact, isOnline, setToggleSidebar }) => {
+  const {  setSelectedContact, selectedContact } = useContactContext();
   useEffect(() => {
     return () => {
       setSelectedContact(null);
@@ -144,48 +164,40 @@ const Contact = ({ contact }) => {
         selectedContact?._id == contact._id ? "bg-gray-700" : ""
       }`}
       onClick={() =>
-        setSelectedContact((prev) =>
-          prev?._id == contact._id ? null : contact
-        )
+        setSelectedContact((prev) => {
+          setToggleSidebar(prev ? true : false);
+          return prev?._id == contact._id ? null : contact;
+        })
       }
     >
       {selectedContact?._id == contact._id && (
         <div className="h-[100%] w-1 bg-green-600 absolute left-0"></div>
       )}
-      <Avatar profilePic={contact.profilePicture} isOnline={true} />
+      <Avatar profilePic={contact.profilePicture} isOnline={isOnline} />
       <div>
         <h3 className="font-semibold text-gray-200">{contact.username}</h3>
-        <p>last message</p>
+        <p>{contact.messages[contact.messages.length - 1]?.message}</p>
       </div>
     </div>
   );
 };
 
-const Sidebar = ({ toggleSidebar, handleSidebar }) => {
+// eslint-disable-next-line react/prop-types
+const Sidebar = ({ toggleSidebar, setToggleSidebar }) => {
   const [searchQuery, setSearchQuery] = useState("");
   return (
     <section
-      className={`${Style.sidebar} ${toggleSidebar ? Style.sidebarActive : ""}`}
+      className={`${Style.sidebar} ${toggleSidebar ? "" : Style.sidebarActive}`}
     >
       <Profile />
       <SearchBox searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-      <Contacts searchQuery={searchQuery} />
-
-      {/* close sidebar button for small devices */}
-      <div className="md:hidden">
-        <IconButton
-          className={`${toggleSidebar ? "" : Style.sidebarActive}`}
-          aria-label="close"
-          onClick={() => handleSidebar()}
-        >
-          <CloseIcon />
-        </IconButton>
-      </div>
+      <Contacts searchQuery={searchQuery} setToggleSidebar={setToggleSidebar} />
     </section>
   );
 };
 
-const Bubble = ({ message, position, time, profilePic }) => {
+// eslint-disable-next-line react/prop-types
+const Bubble = ({ message, position, time, profilePic, shake }) => {
   function showTime(mongoTime) {
     const timestamp = mongoTime;
     const date = new Date(timestamp);
@@ -208,7 +220,7 @@ const Bubble = ({ message, position, time, profilePic }) => {
           <img alt="Tailwind CSS chat bubble component" src={profilePic} />
         </div>
       </div>
-      <div className="chat-bubble">{message}</div>
+      <div className={`chat-bubble ${shake}`}>{message}</div>
       <div className="chat-footer opacity-50">
         <time className="text-xs opacity-50">{showTime(time)}</time>
       </div>
@@ -216,50 +228,17 @@ const Bubble = ({ message, position, time, profilePic }) => {
   );
 };
 
-const ChatProfile = ({ handleSidebar }) => {
-  const {
-    contacts,
-    setSelectedContact,
-    selectedContact,
-    messages,
-    setMessages,
-  } = useContactContext();
-
-  return (
-    <div className=" min-h-[75px] flex items-center border-b border-gray-600">
-      <Button
-        className="h-[100%] hidden"
-        variant="text"
-        color="primary"
-        onClick={() => handleSidebar()}
-        sx={{ minWidth: 20 }}
-      >
-        <ArrowBackIosIcon aria-label="back" />
-      </Button>
-      <div className="flex gap-4 items-center">
-        <Avatar profilePic={selectedContact?.profilePicture} isOnline={true} />
-        <div className="">
-          <h3 className="font-semibold text-slate-200">
-            {selectedContact?.username}
-          </h3>
-          <p className="italic ">online</p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const ChatBubble = () => {
-  const { loading, messages } = useGetMessages();
   const { authUser } = useAuthContext();
-  const { contacts, setSelectedContact, selectedContact } = useContactContext();
+  const { contacts,selectedContact } = useContactContext();
   const lastMsgRef = useRef(null);
+  const loading = false;
 
   useEffect(() => {
     setTimeout(() => {
       lastMsgRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 100);
-  }, [messages]);
+  }, [contacts, selectedContact]);
 
   return (
     <div
@@ -269,8 +248,8 @@ const ChatBubble = () => {
     >
       {loading ? (
         <span className="loading loading-dots loading-lg self-center"></span>
-      ) : messages.length ? (
-        messages.map((message) => (
+      ) : selectedContact.messages.length ? (
+        selectedContact.messages.map((message) => (
           <div key={message._id} ref={lastMsgRef}>
             <Bubble
               message={message.message}
@@ -283,12 +262,54 @@ const ChatBubble = () => {
                   ? authUser.profilePicture
                   : selectedContact.profilePicture
               }
+              shake={message.shouldShake ? "shake" : ""}
             />
           </div>
         ))
       ) : (
-        "no messages found"
+        <div className="h-full flex items-center justify-center">
+          {"👋 Say hello to " + selectedContact.username}
+        </div>
       )}
+    </div>
+  );
+};
+
+// eslint-disable-next-line react/prop-types
+const ChatProfile = ({ setToggleSidebar }) => {
+  const { onlineUsers } = useSocketContext();
+  const { setSelectedContact, selectedContact } = useContactContext();
+
+  function handleBackBtnClick() {
+    setSelectedContact(null);
+    setToggleSidebar(true);
+  }
+
+  return (
+    <div className=" min-h-[75px] flex items-center border-b border-gray-600">
+      <Button
+        className="h-[100%] hidden"
+        variant="text"
+        color="primary"
+        onClick={() => handleBackBtnClick()}
+        sx={{ minWidth: 20 }}
+      >
+        <ArrowBackIosIcon aria-label="back" />
+      </Button>
+      <div className="flex gap-4 items-center">
+        <Avatar
+          profilePic={selectedContact?.profilePicture}
+          isOnline={onlineUsers.includes(selectedContact?._id)}
+        />
+        <div className="">
+          <h3 className="font-semibold text-slate-200">
+            {selectedContact?.username}
+          </h3>
+          <p className="italic ">
+            {onlineUsers.includes(selectedContact?._id) ? "online" : "offline"}
+          </p>
+        </div>
+      </div>
     </div>
   );
 };
@@ -298,7 +319,6 @@ const InputMessageBox = () => {
   const { contacts, setSelectedContact, selectedContact } = useContactContext();
   const { loading, sendMessage } = useSendMessage();
   function handleSendMessage() {
-    console.log(inputMessage);
     sendMessage(inputMessage);
     setInputMessage("");
   }
@@ -327,8 +347,8 @@ const InputMessageBox = () => {
 };
 
 // eslint-disable-next-line react/prop-types
-const ChatWindow = ({ handleSidebar }) => {
-  const { contacts, setSelectedContact, selectedContact } = useContactContext();
+const ChatWindow = ({ setToggleSidebar }) => {
+  const { selectedContact } = useContactContext();
 
   return (
     <section
@@ -336,45 +356,201 @@ const ChatWindow = ({ handleSidebar }) => {
     >
       {selectedContact !== null ? (
         <>
-          <ChatProfile handleSidebar={handleSidebar} />
+          <ChatProfile setToggleSidebar={setToggleSidebar} />
           <ChatBubble />
           <InputMessageBox />
         </>
       ) : (
-        "select an contact"
+        <div className="h-full flex justify-center items-center flex-col opacity-[90%]">
+          <img src={chatnodeIcon} alt="chatnode icon" />
+          <p className="text-gray-500">Select a chat to read messages</p>
+        </div>
       )}
     </section>
   );
 };
 
+const UpdateProfile = () => {
+  const { authUser } = useAuthContext();
+  const { loading, logout } = useLogout();
+  const { loading: updateLoading, updateProfile } = useUpdateProfile();
+
+  const [inputs, setInputs] = useState({
+    fullname: authUser.fullname,
+    username: authUser.username,
+    passowrd: "",
+    confirmPassword: "",
+  });
+
+  return (
+    <dialog id="my_modal_3" className="modal">
+      <div className="modal-box pt-1">
+        {/* close button at top right corner */}
+        <form
+          method="dialog"
+          className="sticky top-0 h-0 flex flex-row-reverse"
+        >
+          <button className="btn btn-sm btn-circle btn-ghost ">
+            <div className="flex items-center gap-2">
+              <kbd className="kbd kbd-sm">ESC</kbd>✕
+            </div>
+          </button>
+        </form>
+
+        <h3 className="font-bold text-lg pb-4 sticky top-0">Profile</h3>
+        <div className="flex gap-3 justify-center items-center flex-wrap">
+          <MuiAvatar
+            variant="circular"
+            src={authUser?.profilePicture}
+            alt="user profile picture"
+            sx={{ width: "70px", height: "70px" }}
+          />
+          <div>
+            <h3 className="font-semibold text-gray-200 text-xl pl-2">
+              {authUser?.username}
+            </h3>
+            <Button variant="text" color="primary" onClick={() => logout()}>
+              <p>logout </p>
+              <LogoutIcon sx={{ fontSize: 18, marginLeft: "10px" }} />
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex gap-3 justify-center items-center flex-wrap p-4">
+          <label className="form-control w-full max-w-xs">
+            <div className="label">
+              <span className="label-text uppercase">fullname</span>
+            </div>
+            <input
+              type="text"
+              placeholder="Full Name"
+              className="input input-bordered w-full max-w-xs"
+              value={inputs.fullname}
+              onChange={(e) =>
+                setInputs({ ...inputs, fullname: e.target.value })
+              }
+            />
+          </label>
+
+          <label className="form-control w-full max-w-xs">
+            <div className="label">
+              <span className="label-text uppercase">Username</span>
+            </div>
+            <label className="input input-bordered flex items-center gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                className="w-4 h-4 opacity-70"
+              >
+                <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM12.735 14c.618 0 1.093-.561.872-1.139a6.002 6.002 0 0 0-11.215 0c-.22.578.254 1.139.872 1.139h9.47Z" />
+              </svg>
+              <input
+                type="text"
+                className="grow"
+                placeholder="Username"
+                value={inputs.username}
+                onChange={(e) =>
+                  setInputs({ ...inputs, username: e.target.value })
+                }
+              />
+            </label>
+          </label>
+
+          <label className="form-control w-full max-w-xs">
+            <div className="label">
+              <span className="label-text uppercase">New Password</span>
+            </div>
+            <label className="input input-bordered flex items-center gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                className="w-4 h-4 opacity-70"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M14 6a4 4 0 0 1-4.899 3.899l-1.955 1.955a.5.5 0 0 1-.353.146H5v1.5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-2.293a.5.5 0 0 1 .146-.353l3.955-3.955A4 4 0 1 1 14 6Zm-4-2a.75.75 0 0 0 0 1.5.5.5 0 0 1 .5.5.75.75 0 0 0 1.5 0 2 2 0 0 0-2-2Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <input
+                type="text"
+                className="grow"
+                value={inputs.password}
+                onChange={(e) =>
+                  setInputs({ ...inputs, password: e.target.value })
+                }
+              />
+            </label>
+          </label>
+          <label className="form-control w-full max-w-xs">
+            <div className="label">
+              <span className="label-text uppercase">Confirm Password</span>
+            </div>
+            <label className="input input-bordered flex items-center gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                className="w-4 h-4 opacity-70"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M14 6a4 4 0 0 1-4.899 3.899l-1.955 1.955a.5.5 0 0 1-.353.146H5v1.5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-2.293a.5.5 0 0 1 .146-.353l3.955-3.955A4 4 0 1 1 14 6Zm-4-2a.75.75 0 0 0 0 1.5.5.5 0 0 1 .5.5.75.75 0 0 0 1.5 0 2 2 0 0 0-2-2Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <input
+                type="text"
+                className="grow"
+                value={inputs.confirmPassword}
+                onChange={(e) =>
+                  setInputs({
+                    ...inputs,
+                    confirmPassword: e.target.value,
+                  })
+                }
+              />
+            </label>
+          </label>
+          <label className="w-full max-w-xs flex flex-row-reverse">
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => {
+                updateProfile(inputs);
+              }}
+            >
+              update
+            </Button>
+          </label>
+        </div>
+      </div>
+      <Toaster
+        toastOptions={{
+          className: "",
+          style: {
+            backgroundColor: "rgba(255,255,255, .9)",
+            // color: "#713200",
+            zIndex: "99",
+          },
+        }}
+      />
+    </dialog>
+  );
+};
 const Structure = () => {
   const [toggleSidebar, setToggleSidebar] = useState(true);
-  const { loading, logout } = useLogout();
-
-  function handleSidebar() {
-    setToggleSidebar((prev) => !prev);
-  }
-
   return (
     <div className={Style.body}>
       <main className={Style.structure}>
-        <Sidebar toggleSidebar={toggleSidebar} handleSidebar={handleSidebar} />
-        <ChatWindow handleSidebar={handleSidebar} />
-        <dialog id="my_modal_3" className="modal">
-          <div className="modal-box">
-            <form method="dialog">
-              {/* if there is a button in form, it will close the modal */}
-              <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
-                ✕
-              </button>
-            </form>
-            <h3 className="font-bold text-lg">Hello!</h3>
-            <p className="py-4">Press ESC key or click on ✕ button to close</p>
-            <Button variant="outlined" color="primary" onClick={() => logout()}>
-              logout
-            </Button>
-          </div>
-        </dialog>
+        <Sidebar
+          toggleSidebar={toggleSidebar}
+          setToggleSidebar={setToggleSidebar}
+        />
+        <ChatWindow setToggleSidebar={setToggleSidebar} />
+        <UpdateProfile />
       </main>
     </div>
   );

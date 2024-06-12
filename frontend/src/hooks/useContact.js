@@ -4,7 +4,7 @@ import { toast } from "react-hot-toast";
 import { useContactContext } from "../context/contactContext.jsx";
 
 export const useContacts = () => {
-  const { setContacts } = useContactContext();
+  const { contacts, setContacts } = useContactContext();
   const [loading, setLoading] = useState(false);
 
   const getContacts = async () => {
@@ -14,7 +14,6 @@ export const useContacts = () => {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setContacts(data);
-      console.log("fetched contacts: ", data);
     } catch (error) {
       toast.error(error.message);
     } finally {
