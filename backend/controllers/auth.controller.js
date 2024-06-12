@@ -79,3 +79,53 @@ export const logout = (req, res) => {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+export const update = async (req, res) => {
+  try {
+    if (Object.keys(req.body).length === 0)
+      return res.status(400).json({ error: "No feild to update" });
+
+    const { fullname, username, password, confirmPassword, gender } = req.body;
+
+    if (username !== req.user.username) {
+      const user = await User.findOne({ username });
+      if (user)
+        return res.status(400).json({ error: "this username already in use" });
+    }
+
+    if (password?.length < 6)
+      return res
+        .status(400)
+        .json({ error: "password must have 6+ characters" });
+
+    if (password && password !== confirmPassword)
+      return res.status(400).json({ error: "password don't match" });
+
+    const update = {
+      username,
+      fullname,
+      gender,
+    };
+
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      let hashedPassword = await bcrypt.hash(password, salt);
+      update.password = hashedPassword;
+    }
+
+    const result = await User.updateOne({ _id: req.user._id }, update);
+
+    const newUser = await User.findOne({ username });
+    generateTokenAndSetCookie(newUser._id, res);
+
+    return res.status(201).json({
+      _id: newUser._id,
+      fullname: newUser.fullname,
+      username: newUser.username,
+      profilePicture: newUser.profilePicture,
+    });
+  } catch (error) {
+    console.log("Error in updaate controller -", error.message);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
