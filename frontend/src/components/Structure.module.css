@@ -10,7 +10,7 @@
 }
 
 .structure {
-    height: 100vh;
+    height: 100svh;
     padding: 20px;
 
     display: flex;
