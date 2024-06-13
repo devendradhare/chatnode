@@ -55,7 +55,7 @@ export const login = async (req, res) => {
     );
 
     if (!user || !isPasswordCorrect)
-      return res.status(400).json({ error: "Invalid username of password" });
+      return res.status(400).json({ error: "Invalid username or password" });
 
     generateTokenAndSetCookie(user._id, res);
     return res.status(200).json({
@@ -73,7 +73,7 @@ export const login = async (req, res) => {
 export const logout = (req, res) => {
   try {
     res.cookie("jwt", "", { maxAge: 0 });
-    return res.status(200).json({ message: "logged out successfully" });
+    return res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.log("Error in logout controller -", error.message);
     return res.status(500).json({ error: "Internal Server Error" });
@@ -90,7 +90,7 @@ export const update = async (req, res) => {
     if (username !== req.user.username) {
       const user = await User.findOne({ username });
       if (user)
-        return res.status(400).json({ error: "this username already in use" });
+        return res.status(400).json({ error: "This username is already taken" });
     }
 
     if (password?.length < 6)
@@ -99,7 +99,7 @@ export const update = async (req, res) => {
         .json({ error: "password must have 6+ characters" });
 
     if (password && password !== confirmPassword)
-      return res.status(400).json({ error: "password don't match" });
+      return res.status(400).json({ error: "Password don't match" });
 
     const update = {
       username,
