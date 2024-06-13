@@ -53,7 +53,7 @@ const Login = () => {
           )}
         </Button>
         <p>
-          alredy have an account ?
+        {"don't have an account ?"}
           <Link to="/signup">
             <Button variant="text" color="primary">
               signup
